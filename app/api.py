@@ -98,7 +98,6 @@ class SpotifyAPI(object):
     }
     return headers
 
-
 # basic search method
   def base_search(self,query_params):
     endpoint = 'https://api.spotify.com/v1/search'
@@ -112,7 +111,7 @@ class SpotifyAPI(object):
 
 
 # robust search method
-  def search(self, query=None, operator=None, operator_query=None, search_type='artist'):
+  def search(self, query=None, operator=None, operator_query=None, search_type='track'):
     if query == None:
       raise Exception('A query is required')
     
@@ -126,9 +125,12 @@ class SpotifyAPI(object):
           query = f"{query} {operator} {operator_query}"
     
     query_params = urlencode({'q':query, 'type':search_type.lower()})
-    print(query_params)
 
-    return self.base_search(query_params)
+    search_result = self.base_search(query_params)
+    if search_result[f"{search_type}s"]['total'] == 0:
+      print('Song not found on Spotify.')
+    else:
+      return self.base_search(query_params)
 
 
 # get artist and track id using search
@@ -141,10 +143,12 @@ class SpotifyAPI(object):
       raise Exception('A query is required')
 
     search_result = self.search(query, operator, operator_query, search_type = 'track')
-    artist_id = search_result['tracks']['items'][0]['artists'][0]['id']
-    track_id = search_result['tracks']['items'][0]['id']
-
-    return artist_id, track_id
+    if search_result != None:
+      artist_id = search_result['tracks']['items'][0]['artists'][0]['id']
+      track_id = search_result['tracks']['items'][0]['id']
+      return artist_id, track_id
+    else:
+      return
 
 
 
@@ -154,36 +158,43 @@ class SpotifyAPI(object):
     headers = self.get_resource_header()
     if artist == None or track == None:
       raise Exception('artist and track name is required')
+      
+    query = {'artist':artist, 'track':track}
 
-    seed_artist, seed_track = self.get_id(query = {'artist':artist, 'track':track})
-    query_param = urlencode({'seed_artists':seed_artist, 'seed_tracks':seed_track})
-    lookup_url = f"{endpoint}?{query_param}"
+    if self.get_id(query) != None:
+      seed_artist, seed_track = self.get_id(query)
+      query_param = urlencode({'seed_artists':seed_artist, 'seed_tracks':seed_track})
+      lookup_url = f"{endpoint}?{query_param}"
 
-    r = requests.get(lookup_url, headers = headers)
-    data = r.json()
+      r = requests.get(lookup_url, headers = headers)
+      data = r.json()
 
-    names = [i['name'] for i in data['tracks']]
-    item = [i for i in data['tracks']]
+      names = [i['name'] for i in data['tracks']]
+      item = [i for i in data['tracks']]
 
-    # getting artist names
-    artists = []
-    for i in range(len(item)):
-      artist_names = item[i]['artists'][0]['name']
-      artists.append(artist_names)
-    
-    # gettin album names
-    albums = []
-    for i in range(len(item)):
-      album_names = item[i]['album']['name']
-      albums.append(album_names)
+      # getting artist names
+      artists = []
+      for i in range(len(item)):
+        artist_names = item[i]['artists'][0]['name']
+        artists.append(artist_names)
+      
+      # gettin album names
+      albums = []
+      for i in range(len(item)):
+        album_names = item[i]['album']['name']
+        albums.append(album_names)
 
-    # formatting results
-    results =  list(zip(names, artists))
-    recommendation = []
-    for i in results:
-      rec = f"{i[0]} -- {i[1]}"
-      recommendation.append(rec)
+      
+      result = list(zip(names, artists))
+      recommendation = []
+      for i in result:
+        rec = f"{i[0]} -- {i[1]}"
+        recommendation.append(rec)
+      
+      return recommendation   
 
-    return recommendation
+    else:
+      return 
+
 
       

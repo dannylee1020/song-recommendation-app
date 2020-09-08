@@ -2,6 +2,7 @@ import streamlit as st
 import config
 from api import SpotifyAPI
 import time
+import pandas as pd
 
 
 
@@ -19,12 +20,16 @@ def run():
 	spotify = SpotifyAPI(config.CLIENT_ID, config.CLIENT_SECRET)
 	acess_token = spotify.get_access_token()
 
-	if st.button('Predict'):
+	if st.button('Get Recommendation'):
 		with st.spinner('Fetching data now...'):
 			time.sleep(5)
 			recommendation = spotify.get_recommendation(artist = artist, track = track)
 
-			return st.write(recommendation)
+			if recommendation == None:
+				st.write('**Track not found on Spotify. It could be due to spelling errors or space issues **')
+			else:
+				st.write('**LET YO NEIGHBOR HEAR DIS. SHARING IS CARING :)**')
+				return st.write(recommendation)
 
 
 
